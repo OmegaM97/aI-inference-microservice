@@ -26,17 +26,31 @@ This is a gRPC-based AI Inference microservice using Protocol Buffers for API co
    python -m grpc_tools.protoc --proto_path=protos --python_out=. --grpc_python_out=. protos/ai_inference.proto
    ```
 
-## Running
+## Running locally
 
 1. Start the server:
    ```
    python server/server.py
    ```
 
-2. Run the client to test all RPCs:
+2. Run the client against the load balancer:
    ```
-   python client/client.py
+   python client/client.py --host localhost --port 50051
    ```
+
+## Docker + Load Balancer
+
+1. Build and start the mesh:
+   ```
+   docker compose up --build
+   ```
+
+2. Run the client against Nginx load balancer:
+   ```
+   python client/client.py --host localhost --port 50051
+   ```
+
+The Nginx load balancer listens on port `50051` and distributes gRPC requests round robin across three backend replicas.
 
 If no valid API key is provided, the server runs in mock mode for testing.
 

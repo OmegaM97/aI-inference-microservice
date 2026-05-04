@@ -1,0 +1,50 @@
+version: '3.8'
+
+services:
+  server1:
+    build:
+      context: .
+      dockerfile: server/Dockerfile
+    container_name: ai_server_1
+    env_file:
+      - .env
+    networks:
+      - ai_mesh
+
+  server2:
+    build:
+      context: .
+      dockerfile: server/Dockerfile
+    container_name: ai_server_2
+    env_file:
+      - .env
+    networks:
+      - ai_mesh
+
+  server3:
+    build:
+      context: .
+      dockerfile: server/Dockerfile
+    container_name: ai_server_3
+    env_file:
+      - .env
+    networks:
+      - ai_mesh
+
+  nginx:
+    image: nginx:stable-alpine
+    container_name: ai_nginx
+    depends_on:
+      - server1
+      - server2
+      - server3
+    ports:
+      - "50051:50051"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    networks:
+      - ai_mesh
+
+networks:
+  ai_mesh:
+    driver: bridge
