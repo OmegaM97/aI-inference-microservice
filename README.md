@@ -1,63 +1,112 @@
 # AI Inference Microservice
 
-This is a gRPC-based AI Inference microservice using Protocol Buffers for API contracts. It implements four types of RPCs: Unary, Server-Streaming, Client-Streaming, and Bidirectional-Streaming.
+A lightweight gRPC microservice demo that runs three identical AI inference servers behind an Nginx gRPC load balancer.
+
+## Overview
+
+This repository demonstrates a Dockerized microservice architecture for AI inference:
+- `server/`: gRPC server implementation with multiple RPC styles
+- `nginx/`: Nginx configuration acting as a gRPC load balancer
+- `client/`: Python client to test the available inference endpoints
+- `docker-compose.yml`: brings up 3 server containers plus the Nginx load balancer on a shared Docker network
 
 ## Features
 
-- **Sentiment Analysis**: Unary RPC to classify text sentiment.
-- **Real-time LLM Generation**: Server-Streaming RPC for token-by-token text generation.
-- **Batch Summarization**: Client-Streaming RPC to summarize large texts.
-- **Live Chat Assistant**: Bidirectional-Streaming RPC for conversational AI.
+- Unary RPC: sentiment analysis
+- Server streaming RPC: real-time LLM generation
+- Client streaming RPC: batch summarization
+- Bidirectional streaming RPC: live chat assistant
+- Load-balanced gRPC routing through Nginx
+- Optional Groq API integration via `GROQ_API_KEY`
 
-## Setup
+## Architecture
 
-1. Install dependencies:
-   ```
-   pip install grpcio grpcio-tools protobuf groq python-dotenv
-   ```
+1. `client/client.py` connects to the Nginx load balancer at `localhost:50051`
+2. `nginx` accepts gRPC on port `50051` and forwards traffic to:
+   - `server1:50051`
+   - `server2:50051`
+   - `server3:50051`
+3. Each server runs the same AI inference code and supports the same gRPC service API
+4. Services are connected via the Docker network `ai_mesh`
 
-2. Set your Groq API key in `.env`:
-   ```
-   GROQ_API_KEY=your_actual_api_key_here
-   ```
+## Prerequisites
 
-3. Generate gRPC stubs (already done):
-   ```
-   python -m grpc_tools.protoc --proto_path=protos --python_out=. --grpc_python_out=. protos/ai_inference.proto
-   ```
+- Docker
+- Docker Compose
+- Python 3.14+
+- `uv` package manager installed globally or available in your environment
 
-## Running locally
+## Install dependencies
 
-1. Start the server:
-   ```
-   python server/server.py
-   ```
+From the project root, install Python dependencies using `uv`:
 
-2. Run the client against the load balancer:
-   ```
-   python client/client.py --host localhost --port 50051
-   ```
+```bash
+uv sync
+```
 
-## Docker + Load Balancer
+If `uv` is not installed yet, install it first with:
 
-1. Build and start the mesh:
-   ```
-   docker compose up --build
-   ```
+```bash
+python -m pip install uv
+```
 
-2. Run the client against Nginx load balancer:
-   ```
-   python client/client.py --host localhost --port 50051
-   ```
+## Run the project with Docker Compose
 
-The Nginx load balancer listens on port `50051` and distributes gRPC requests round robin across three backend replicas.
+Build and start all containers using:
 
-If no valid API key is provided, the server runs in mock mode for testing.
+```bash
+docker-compose up --build
+```
 
-## Project Structure
+This command does the following:
+- builds the server image from `server/Dockerfile`
+- starts three server containers: `ai_server_1`, `ai_server_2`, `ai_server_3`
+- starts the Nginx load balancer container: `ai_nginx`
+- connects all containers on the `ai_mesh` Docker bridge network
 
-- `protos/`: Protocol Buffer definitions
-- `server/`: gRPC server implementation
-- `client/`: gRPC client for testing
-- `nginx/`: (For future reverse proxy setup)
-- `.env`: Environment variables (API key)
+## Test the microservice
+
+With Docker Compose running, run the test client from the project root:
+
+```bash
+python client/client.py --host localhost --port 50051
+```
+
+That client performs:
+- Sentiment analysis
+- Real-time LLM generation streaming
+- Batch summarization using client streaming
+- Live chat assistant using bidirectional streaming
+
+## Optional environment configuration
+
+Create a `.env` file in the project root to provide a Groq API key:
+
+```env
+GROQ_API_KEY=your_real_api_key_here
+```
+
+If `GROQ_API_KEY` is missing or set to `12345`, the server returns mock responses instead of calling the Groq API.
+
+## Notes
+
+- The `server/Dockerfile` exposes port `50051` and starts the Python gRPC server.
+- Nginx is configured for HTTP/2 gRPC pass-through in `nginx/nginx.conf`.
+- The load balancer ensures traffic is distributed across three service instances.
+
+## Quick commands
+
+```bash
+uv sync
+
+docker-compose up --build
+python client/client.py --host localhost --port 50051
+```
+
+## Project files
+
+- `docker-compose.yml` — service orchestration for servers and Nginx
+- `nginx/nginx.conf` — gRPC load balancer configuration
+- `server/server.py` — AI inference gRPC server implementation
+- `client/client.py` — test client for all RPC methods
+- `pyproject.toml` — project metadata and dependencies

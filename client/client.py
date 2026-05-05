@@ -40,8 +40,9 @@ def run(host: str, port: int):
             yield ai_inference_pb2.ChatMessage(message="How are you?")
 
         responses = stub.LiveChatAssistant(message_generator())
+        print("AI: ", end="", flush=True)
         for response in responses:
-            print(f"AI: {response.message}", end="")
+            print(response.message, end="", flush=True)
         print()
 
 
